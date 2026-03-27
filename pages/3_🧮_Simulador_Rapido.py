@@ -4,6 +4,11 @@ from utils import load_config, generate_pdf_bytes, load_data, sugerir_margem_luc
 
 st.set_page_config(page_title="Simulador Rápido", layout="wide", page_icon="🧮")
 
+from utils import check_password
+if not check_password():
+    st.stop()
+
+
 st.title("🧮 Simulador Rápido de Preço")
 st.markdown("Use esta ferramenta para simular preços instantaneamente para curiosos no balcão/WhatsApp sem compromisso, e gere o PDF!")
 

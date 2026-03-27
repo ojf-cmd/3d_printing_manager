@@ -3,6 +3,11 @@ from utils import load_config, save_config
 
 st.set_page_config(page_title="Configurações e Precisão", layout="wide", page_icon="⚙️")
 
+from utils import check_password
+if not check_password():
+    st.stop()
+
+
 st.title("⚙️ Configurador de Variáveis")
 st.markdown("Altere os valores padrão do laboratório abaixo. Todas as abas de Orçamento e Simulação puxarão esses 'impostos' globais invisíveis e garantirão máxima precisão.")
 

@@ -59,11 +59,18 @@ def init_db():
 
 def load_data(table_name):
     filepath = os.path.join(DATA_DIR, f"{table_name}.csv")
+    expected_cols = SCHEMAS[f"{table_name}.csv"]
     if os.path.exists(filepath):
         df = pd.read_csv(filepath, dtype=str)
         df.fillna('', inplace=True)
+        
+        # Correção automática de versão: Se o app atualizou e tem colunas novas, adicione-as!
+        for col in expected_cols:
+            if col not in df.columns:
+                df[col] = ''
+                
         return df
-    return pd.DataFrame(columns=SCHEMAS[f"{table_name}.csv"])
+    return pd.DataFrame(columns=expected_cols)
 
 def save_data(table_name, df):
     filepath = os.path.join(DATA_DIR, f"{table_name}.csv")
@@ -157,3 +164,27 @@ def sugerir_margem_lucro():
     except:
         pass
     return 80
+
+import streamlit as st
+import hmac
+
+def check_password():
+    """Valida se o usuário tem a senha mestre. Retorna True se logged in."""
+    def password_entered():
+        if hmac.compare_digest(st.session_state["user_password"], st.secrets["password"]):
+            st.session_state["password_correct"] = True
+            del st.session_state["user_password"]
+        else:
+            st.session_state["password_correct"] = False
+
+    if st.session_state.get("password_correct", False):
+        return True
+
+    st.markdown("<h2 style='text-align: center;'>🔒 Acesso Restrito ao Administrador</h2>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        st.text_input("Digite sua Senha Mestra", type="password", key="user_password", on_change=password_entered)
+        if "password_correct" in st.session_state and not st.session_state["password_correct"]:
+            st.error("😕 Senha incorreta. Tente novamente.")
+    
+    return False
