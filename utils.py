@@ -157,11 +157,8 @@ def get_login_url():
     return f"{AUTH_URL}?{urllib.parse.urlencode(params)}"
 
 def check_password():
-    st.session_state['user_approved'] = True
-    st.session_state['user_role'] = 'Admin'
-    st.session_state['user_email'] = 'octaviofrancchitrabalho@gmail.com'
-    st.session_state['user_name'] = 'Bypass Dev'
-    return True
+    if st.session_state.get('user_approved', False):
+        return True
 
     
     # 1. Checa as Secret Keys do Admin
