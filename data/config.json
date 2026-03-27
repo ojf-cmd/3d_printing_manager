@@ -1,0 +1,8 @@
+{
+    "valor_hora_operador": 40.0,
+    "custo_embalagem": 10.0,
+    "custo_projeto_engenharia": 100.0,
+    "custo_entrega": 20.0,
+    "margem_padrao": 80,
+    "custo_padrao_material_kg": 120.0
+}

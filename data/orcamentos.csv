@@ -1,0 +1,5 @@
+id,nome_projeto,id_cliente,id_equipamento,peso_g,tempo_impressao_h,tempo_trabalho_h,extras_embalagem,extras_engenharia,extras_entrega,margem_lucro,custo_total,preco_final,link_pdf
+40c20a05,Planta Ape,00cfbaf4,abb6ea41,500.0,11.0,0.5,False,False,True,80,102.75,184.95000000000002,
+aff19ddb,Planta Ape,00cfbaf4,abb6ea41,500.0,11.0,0.5,False,False,True,30,102.75,133.57500000000002,
+bd011069,Planta Ape,00cfbaf4,abb6ea41,500.0,11.0,0.5,False,False,True,30,102.75,133.57500000000002,
+de9fb448,nljkhnbkjn,00cfbaf4,abb6ea41,500.0,10.0,0.5,False,False,True,50,92.5,138.75,
