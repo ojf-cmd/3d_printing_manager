@@ -62,15 +62,17 @@ def init_db():
 
 def load_data(table_name):
     filepath = os.path.join(DATA_DIR, f"{table_name}.csv")
-    expected_cols = SCHEMAS[f"{table_name}.csv"]
     if os.path.exists(filepath):
         df = pd.read_csv(filepath, dtype=str)
         df.fillna('', inplace=True)
+<<<<<<< HEAD
         for col in expected_cols:
             if col not in df.columns:
                 df[col] = ''
+=======
+>>>>>>> parent of 9759386 (Add admin password check and resilient data load)
         return df
-    return pd.DataFrame(columns=expected_cols)
+    return pd.DataFrame(columns=SCHEMAS[f"{table_name}.csv"])
 
 def save_data(table_name, df):
     filepath = os.path.join(DATA_DIR, f"{table_name}.csv")
@@ -138,6 +140,7 @@ def sugerir_margem_lucro():
     except:
         pass
     return 80
+<<<<<<< HEAD
 
 # === SISTEMA DE LOGIN GOOGLE OAUTH ===
 
@@ -251,3 +254,5 @@ def check_password():
         
     st.error("Conta bloqueada pelo Administrador.")
     return False
+=======
+>>>>>>> parent of 9759386 (Add admin password check and resilient data load)

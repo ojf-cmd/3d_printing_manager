@@ -6,11 +6,6 @@ import urllib.parse
 
 st.set_page_config(page_title="Central de Pedidos", layout="wide", page_icon="📦")
 
-from utils import check_password
-if not check_password():
-    st.stop()
-
-
 st.title("📦 Central de Pedidos")
 st.markdown("Selecione um pedido existente para gerenciar todos os seus aspectos (cliente, orçamento, máquina, estoque e agenda).")
 

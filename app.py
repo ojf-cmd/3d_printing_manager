@@ -8,11 +8,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-from utils import check_password
-if not check_password():
-    st.stop()
-
-
 # Inicializa o banco de dados (Cria os CSVs caso não existam)
 init_db()
 

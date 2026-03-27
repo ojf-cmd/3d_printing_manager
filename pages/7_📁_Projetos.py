@@ -4,11 +4,6 @@ from utils import load_data, save_data, generate_id
 
 st.set_page_config(page_title="Projetos Especiais", layout="wide", page_icon="📁")
 
-from utils import check_password
-if not check_password():
-    st.stop()
-
-
 st.title("📁 Projetos")
 st.markdown("Agrupe vários pedidos de peças complexas em um único 'Projeto'. Exemplo: 'Robô Seguidor de Linha'")
 

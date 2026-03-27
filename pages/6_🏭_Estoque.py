@@ -4,11 +4,6 @@ from utils import load_data, save_data, generate_id
 
 st.set_page_config(page_title="Estoque", layout="wide", page_icon="🏭")
 
-from utils import check_password
-if not check_password():
-    st.stop()
-
-
 st.title("🏭 Controle de Estoque de Insumos")
 
 estoque = load_data("estoque")

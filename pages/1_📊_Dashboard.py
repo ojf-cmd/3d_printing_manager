@@ -5,11 +5,6 @@ import plotly.express as px
 
 st.set_page_config(page_title="Dashboard", layout="wide", page_icon="📊")
 
-from utils import check_password
-if not check_password():
-    st.stop()
-
-
 st.title("📊 Dashboard")
 st.markdown("Visão geral do sistema de Impressão 3D.")
 

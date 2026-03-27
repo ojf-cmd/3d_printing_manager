@@ -5,11 +5,6 @@ from datetime import datetime
 
 st.set_page_config(page_title="Cronograma", layout="wide", page_icon="📅")
 
-from utils import check_password
-if not check_password():
-    st.stop()
-
-
 st.title("📅 Cronograma de Entregas")
 st.markdown("Veja apenas os pedidos que foram aprovados e acompanhe de perto sua fila de impressão!")
 

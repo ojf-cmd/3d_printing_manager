@@ -4,11 +4,6 @@ from utils import load_data, save_data, generate_id
 
 st.set_page_config(page_title="Equipamentos", layout="wide", page_icon="🖨️")
 
-from utils import check_password
-if not check_password():
-    st.stop()
-
-
 st.title("🖨️ Máquinas e Depreciação")
 st.markdown("Cadastre suas impressoras 3D, Gravadoras a Laser e Scanners. O sistema calculará o **Custo de Desgaste por Hora** para você nunca levar prejuízo pela depreciação do equipamento.")
 
