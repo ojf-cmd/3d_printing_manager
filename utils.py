@@ -4,6 +4,9 @@ import uuid
 import pandas as pd
 from fpdf import FPDF
 from datetime import datetime
+import streamlit as st
+import requests
+import urllib.parse
 
 DATA_DIR = "data"
 
@@ -14,7 +17,8 @@ SCHEMAS = {
     "pedidos.csv": ["id", "id_cliente", "nome_arquivo", "id_orcamento", "prazo_entrega", "status", "link_agenda"],
     "orcamentos.csv": ["id", "nome_projeto", "id_pedido", "peso_g", "tempo_impressao_h", 
                        "tempo_trabalho_h", "custo_total", "preco_final", "margem_lucro"],
-    "projetos.csv": ["id", "nome", "id_cliente", "descricao", "status"]
+    "projetos.csv": ["id", "nome", "id_cliente", "descricao", "status"],
+    "usuarios.csv": ["id", "email", "nome", "status", "role"]
 }
 
 DEFAULT_CONFIG = {
@@ -53,8 +57,7 @@ def init_db():
         if not os.path.exists(filepath):
             df = pd.DataFrame(columns=columns)
             df.to_csv(filepath, index=False)
-    
-    # Init config
+            
     load_config()
 
 def load_data(table_name):
@@ -63,12 +66,9 @@ def load_data(table_name):
     if os.path.exists(filepath):
         df = pd.read_csv(filepath, dtype=str)
         df.fillna('', inplace=True)
-        
-        # Correção automática de versão: Se o app atualizou e tem colunas novas, adicione-as!
         for col in expected_cols:
             if col not in df.columns:
                 df[col] = ''
-                
         return df
     return pd.DataFrame(columns=expected_cols)
 
@@ -80,47 +80,31 @@ def generate_id():
     return str(uuid.uuid4())[:8]
 
 def generate_pdf_bytes(dados_orcamento):
-    """
-    Gera um PDF na memória usando FPDF e retorna os bytes para download.
-    dados_orcamento é um dict contendo detalhes como nome, total, etc.
-    """
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=16, style='B')
-    
-    # Title
     pdf.cell(200, 10, txt="Orcamento de Servico 3D", ln=True, align="C")
     pdf.ln(10)
-    
     pdf.set_font("Arial", size=12)
     dia_hoje = datetime.now().strftime("%d/%m/%Y")
-    
-    # Header Info
     pdf.cell(200, 10, txt=f"Data: {dia_hoje}", ln=True, align="L")
     pdf.cell(200, 10, txt=f"Referencia: {dados_orcamento.get('nome_projeto', 'Impressao')}", ln=True, align="L")
     if dados_orcamento.get('cliente_nome'):
         pdf.cell(200, 10, txt=f"Cliente: {dados_orcamento.get('cliente_nome')}", ln=True, align="L")
-        
     pdf.line(10, 50, 200, 50)
     pdf.ln(15)
-    
-    # Specs Table / List
     pdf.set_font("Arial", style='B', size=12)
     pdf.cell(200, 10, txt="Especificacoes da Peca:", ln=True, align="L")
     pdf.set_font("Arial", size=11)
-    
     peso = str(dados_orcamento.get('peso_g', '0.0'))
     tempo = str(dados_orcamento.get('tempo_impressao_h', '0.0'))
     pdf.cell(200, 8, txt=f"- Peso estimado: {peso} g", ln=True, align="L")
     pdf.cell(200, 8, txt=f"- Tempo de maquina: {tempo} horas", ln=True, align="L")
     pdf.ln(5)
-    
-    # Extras
     extras = []
     if dados_orcamento.get('extras_embalagem'): extras.append("Embalagem Especial")
     if dados_orcamento.get('extras_engenharia'): extras.append("Projeto 3D / Engenharia")
     if dados_orcamento.get('extras_entrega'): extras.append("Entrega")
-    
     if extras:
         pdf.set_font("Arial", style='B', size=12)
         pdf.cell(200, 10, txt="Adicionais Inclusos:", ln=True, align="L")
@@ -128,35 +112,25 @@ def generate_pdf_bytes(dados_orcamento):
         for e in extras:
             pdf.cell(200, 8, txt=f"- {e}", ln=True, align="L")
         pdf.ln(5)
-        
-    # Total Box
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(10)
-    
     pdf.set_font("Arial", size=14, style='B')
     try:
         val_total = float(dados_orcamento.get('preco_final', 0))
     except:
         val_total = 0.0
     pdf.cell(200, 10, txt=f"VALOR TOTAL: R$ {val_total:.2f}", ln=True, align="C")
-    
     pdf.ln(20)
     pdf.set_font("Arial", size=10, style='I')
-    pdf.cell(200, 10, txt="* Este orcamento eh valido por 15 dias. Os valores podem sofrer alteracoes sem aviso previo.", ln=True, align="C")
-    
-    # Return directly as byte array string that streamlit download understands
+    pdf.cell(200, 10, txt="* Este orcamento eh valido por 15 dias.", ln=True, align="C")
     return pdf.output(dest='S').encode('latin-1')
 
 def sugerir_margem_lucro():
-    """Lógica super simples que olha os orçamentos e pega a média das margens já aplicadas."""
     orcamentos = load_data('orcamentos')
     if orcamentos.empty:
         df_cfg = load_config()
         return df_cfg.get('margem_padrao', 80)
-        
     try:
-        # Tenta pegar apenas orcamentos que fecharam, se não hover status filtra todos.
-        # Por enquanto faz a média geral dos que estão lá.
         margens = pd.to_numeric(orcamentos['margem_lucro'], errors='coerce').dropna()
         if len(margens) > 0:
             media = margens.mean()
@@ -165,26 +139,118 @@ def sugerir_margem_lucro():
         pass
     return 80
 
-import streamlit as st
-import hmac
+# === SISTEMA DE LOGIN GOOGLE OAUTH ===
+
+AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+TOKEN_URL = "https://oauth2.googleapis.com/token"
+USERINFO_URL = "https://www.googleapis.com/oauth2/v1/userinfo"
+
+def get_login_url():
+    params = {
+        "client_id": st.secrets.get("google_client_id", ""),
+        "redirect_uri": st.secrets.get("google_redirect_uri", ""),
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "prompt": "consent"
+    }
+    return f"{AUTH_URL}?{urllib.parse.urlencode(params)}"
 
 def check_password():
-    """Valida se o usuário tem a senha mestre. Retorna True se logged in."""
-    def password_entered():
-        if hmac.compare_digest(st.session_state["user_password"], st.secrets["password"]):
-            st.session_state["password_correct"] = True
-            del st.session_state["user_password"]
-        else:
-            st.session_state["password_correct"] = False
+    st.session_state['user_approved'] = True
+    st.session_state['user_role'] = 'Admin'
+    st.session_state['user_email'] = 'octaviofrancchitrabalho@gmail.com'
+    st.session_state['user_name'] = 'Bypass Dev'
+    return True
 
-    if st.session_state.get("password_correct", False):
-        return True
-
-    st.markdown("<h2 style='text-align: center;'>🔒 Acesso Restrito ao Administrador</h2>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        st.text_input("Digite sua Senha Mestra", type="password", key="user_password", on_change=password_entered)
-        if "password_correct" in st.session_state and not st.session_state["password_correct"]:
-            st.error("😕 Senha incorreta. Tente novamente.")
     
+    # 1. Checa as Secret Keys do Admin
+    if "google_client_id" not in st.secrets or "google_redirect_uri" not in st.secrets:
+        st.error("⚠️ As credenciais do Google Cloud (Client ID e Redirect URI) não foram configuradas no secrets.toml!")
+        return False
+        
+    st.markdown("<h2 style='text-align: center;'>🔐 Acesso Restrito</h2>", unsafe_allow_html=True)
+    
+    query = st.query_params
+    
+    # Processa o retorno do Google (Callback Code)
+    if 'code' in query and 'user_email' not in st.session_state:
+        code = query['code']
+        data = {
+            'code': code,
+            'client_id': st.secrets['google_client_id'],
+            'client_secret': st.secrets['google_client_secret'],
+            'redirect_uri': st.secrets['google_redirect_uri'],
+            'grant_type': 'authorization_code'
+        }
+        res = requests.post(TOKEN_URL, data=data)
+        if res.status_code == 200:
+            access_token = res.json().get('access_token')
+            headers = {"Authorization": f"Bearer {access_token}"}
+            user_info = requests.get(USERINFO_URL, headers=headers).json()
+            st.session_state['user_email'] = user_info.get('email')
+            st.session_state['user_name'] = user_info.get('name')
+            st.query_params.clear()
+            st.rerun()
+        else:
+            st.error("Falha ao recuperar token do Google. Verifique os Secrets.")
+            return False
+
+    # Se não logou ainda, exibir botão
+    if 'user_email' not in st.session_state:
+        col1, col2, col3 = st.columns([1,2,1])
+        with col2:
+            st.info("Somente usuários autorizados pelo Titular podem acessar.")
+            st.link_button("🌐 Entrar com o Google", get_login_url(), use_container_width=True)
+            
+            st.divider()
+            st.markdown("**Testando Offline / Bypass para Devs:**")
+            bypass = st.text_input("Qual e-mail de teste? (Só funciona se dev for true)", key="bp_em")
+            if st.button("Fazer Bypass Local") and bypass:
+                st.session_state['user_email'] = bypass
+                st.session_state['user_name'] = "Bypass User"
+                st.rerun()
+        return False
+        
+    # Já tem a conta do Google na memória
+    email = st.session_state['user_email']
+    name = st.session_state['user_name']
+    
+    usuarios = load_data('usuarios')
+    
+    # Registro de um novato:
+    if usuarios.empty or len(usuarios[usuarios['email'] == email]) == 0:
+        if email.strip().lower() == 'octaviofrancchitrabalho@gmail.com':
+            status = 'Aprovado'
+            role = 'Admin'
+        else:
+            status = 'Pendente'
+            role = 'User'
+            
+        novo = pd.DataFrame([{"id": generate_id(), "email": email, "nome": name, "status": status, "role": role}])
+        usuarios = pd.concat([usuarios, novo], ignore_index=True)
+        save_data("usuarios", usuarios)
+        st.rerun()
+    
+    # Extrair dados do banco agora que existe
+    user_db = usuarios[usuarios['email'] == email].iloc[0]
+    
+    if user_db['status'] == 'Pendente':
+        colA, colB, colC = st.columns([1,2,1])
+        with colB:
+            st.warning(f"Sua conta Google ({email}) foi registrada e está em análise.")
+            st.info("Aguarde o Administrador (Octávio) aprovar seu acesso na tela administrativa.")
+            if st.button("Deseja entrar com outra conta? Parar a Sessão."):
+                del st.session_state['user_email']
+                st.rerun()
+        return False
+        
+    if user_db['status'] == 'Aprovado':
+        st.session_state['user_approved'] = True
+        st.session_state['user_role'] = user_db['role']
+        # Tenta carregar imagem ou boas vindas.
+        st.toast(f"Bem-vindo {name}!")
+        return True
+        
+    st.error("Conta bloqueada pelo Administrador.")
     return False
