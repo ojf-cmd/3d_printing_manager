@@ -25,4 +25,17 @@ with st.expander("👤 Novo Cadastro de Cliente"):
             st.rerun()
 
 st.subheader("Lista de Clientes Cadastrados")
-st.dataframe(clientes, use_container_width=True, hide_index=True)
+st.info("💡 Dica: Dê um duplo clique nas células para editar ou selecione uma linha para deletar. Salve no final!")
+
+edited_clientes = st.data_editor(
+    clientes, 
+    use_container_width=True, 
+    hide_index=True, 
+    num_rows="dynamic",
+    disabled=["id"]
+)
+
+if st.button("💾 Salvar Alterações na Tabela", type="primary"):
+    save_data("clientes", edited_clientes)
+    st.success("Alterações salvas com sucesso!")
+    st.rerun()

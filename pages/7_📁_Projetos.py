@@ -35,4 +35,17 @@ with st.expander("✨ Criar Novo Projeto"):
             st.rerun()
 
 st.subheader("Lista de Projetos")
-st.dataframe(projetos, use_container_width=True, hide_index=True)
+st.info("💡 Dica: Dê um duplo clique nas células para editar ou selecione uma linha para deletar. Salve no final!")
+
+edited_projetos = st.data_editor(
+    projetos, 
+    use_container_width=True, 
+    hide_index=True, 
+    num_rows="dynamic",
+    disabled=["id", "id_cliente"]
+)
+
+if st.button("💾 Salvar Alterações na Tabela", type="primary"):
+    save_data("projetos", edited_projetos)
+    st.success("Alterações salvas com sucesso!")
+    st.rerun()

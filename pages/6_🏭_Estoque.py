@@ -33,4 +33,17 @@ with st.expander("📦 Entrada de Insumo / Fornecedor"):
             st.rerun()
 
 st.subheader("Lista de Insumos Atuais")
-st.dataframe(estoque, hide_index=True, use_container_width=True)
+st.info("💡 Dica: Dê um duplo clique nas células para editar ou selecione uma linha para deletar. Salve no final!")
+
+edited_estoque = st.data_editor(
+    estoque, 
+    use_container_width=True, 
+    hide_index=True, 
+    num_rows="dynamic",
+    disabled=["id"]
+)
+
+if st.button("💾 Salvar Alterações na Tabela", type="primary"):
+    save_data("estoque", edited_estoque)
+    st.success("Alterações salvas com sucesso!")
+    st.rerun()

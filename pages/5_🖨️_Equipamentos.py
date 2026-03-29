@@ -40,13 +40,21 @@ st.markdown("---")
 st.subheader("📋 Suas Máquinas Cadastradas")
 
 if not equipamentos.empty:
-    st.dataframe(
-        equipamentos.rename(columns={
-            "nome": "Modelo", "tipo": "Categoria", "preco_compra": "Preço Pago (R$)", 
-            "vida_util_horas":"Vida Útil (h)", "custo_hora_depreciacao": "Depreciação/Hora (R$)"
-        }).drop(columns=['id']),
+    st.info("💡 Dica: Dê um duplo clique nas células para editar ou selecione uma linha para deletar. Salve no final!")
+    edited_equipamentos = st.data_editor(
+        equipamentos,
         hide_index=True,
-        use_container_width=True
+        use_container_width=True,
+        num_rows="dynamic",
+        disabled=["id", "custo_hora_depreciacao"]
     )
+    if st.button("💾 Salvar Alterações na Tabela", type="primary"):
+        # Recalcular depreciação em caso de alteração no preço ou horas
+        edited_equipamentos['preco_compra'] = pd.to_numeric(edited_equipamentos['preco_compra'], errors='coerce')
+        edited_equipamentos['vida_util_horas'] = pd.to_numeric(edited_equipamentos['vida_util_horas'], errors='coerce')
+        edited_equipamentos['custo_hora_depreciacao'] = (edited_equipamentos['preco_compra'] / edited_equipamentos['vida_util_horas']).round(4)
+        save_data("equipamentos", edited_equipamentos)
+        st.success("Alterações salvas!")
+        st.rerun()
 else:
     st.info("Você ainda não tem máquinas cadastradas.")
