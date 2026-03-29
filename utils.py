@@ -138,7 +138,7 @@ def sugerir_margem_lucro():
     except:
         pass
     return 80
-<<<<<<< HEAD
+
 
 # === SISTEMA DE LOGIN GOOGLE OAUTH ===
 
@@ -252,5 +252,4 @@ def check_password():
         
     st.error("Conta bloqueada pelo Administrador.")
     return False
-=======
->>>>>>> parent of 9759386 (Add admin password check and resilient data load)
+
