@@ -99,6 +99,12 @@ else:
             st.write(f"Margem de lucro aplicada: {dados_o.get('margem_lucro', '0')}%")
             
             # Gerar PDF Real Button
+            import json
+            try:
+                livres = json.loads(str(dados_o.get('extras_livres', '[]')))
+            except:
+                livres = []
+                
             # Pass data for PDF inside dict
             dados_pdf = {
                 "nome_projeto": pedido_ativo['nome_arquivo'],
@@ -109,6 +115,7 @@ else:
                 "extras_embalagem": dados_o.get('extras_embalagem'),
                 "extras_engenharia": dados_o.get('extras_engenharia'),
                 "extras_entrega": dados_o.get('extras_entrega'),
+                "extras_livres": livres,
             }
             
             pdf_bytes = generate_pdf_bytes(dados_pdf)
@@ -148,6 +155,19 @@ else:
                 ex_eng = st.checkbox("Projeto/Modelagem 3D")
                 ex_ent = st.checkbox("Entrega via Motoboy")
                 
+                st.write("Adicionais Extras Livres:")
+                import json
+                if 'extras_pedidos_form' not in st.session_state:
+                    st.session_state['extras_pedidos_form'] = pd.DataFrame([{"Descrição": "", "Valor (R$)": 0.0}])
+                
+                edited_extras = st.data_editor(
+                    st.session_state['extras_pedidos_form'],
+                    num_rows="dynamic",
+                    use_container_width=True,
+                    hide_index=True,
+                    key="editor_extras_ped"
+                )
+                
                 # O valor padrao sugerido vem das configuracoes!
                 margem_sugerida = float(config_obj.get("margem_padrao", 80.0))
                 margem = st.slider("Margem (%)", 10.0, 300.0, margem_sugerida)
@@ -170,7 +190,15 @@ else:
                     if ex_eng: extra_val += float(config_obj.get('custo_projeto_engenharia', 100))
                     if ex_ent: extra_val += float(config_obj.get('custo_entrega', 20))
                     
-                    base_price = custo_material + custo_maq + custo_hum + extra_val
+                    soma_livres = pd.to_numeric(edited_extras['Valor (R$)'], errors='coerce').sum()
+                    lista_livres_pdf = []
+                    for _, row in edited_extras.iterrows():
+                        desc = str(row['Descrição']).strip()
+                        val = pd.to_numeric(row['Valor (R$)'], errors='coerce')
+                        if desc and not pd.isna(val) and val != 0:
+                            lista_livres_pdf.append(f"{desc}: R$ {val:.2f}")
+                            
+                    base_price = custo_material + custo_maq + custo_hum + extra_val + soma_livres
                     total = base_price * (1 + (margem / 100))
                     
                     n_orc = pd.DataFrame([{
@@ -183,6 +211,7 @@ else:
                         "extras_embalagem": ex_emb,
                         "extras_engenharia": ex_eng,
                         "extras_entrega": ex_ent,
+                        "extras_livres": json.dumps(lista_livres_pdf),
                         "margem_lucro": margem,
                         "custo_total": base_price,
                         "preco_final": total

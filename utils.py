@@ -105,6 +105,11 @@ def generate_pdf_bytes(dados_orcamento):
     if dados_orcamento.get('extras_embalagem'): extras.append("Embalagem Especial")
     if dados_orcamento.get('extras_engenharia'): extras.append("Projeto 3D / Engenharia")
     if dados_orcamento.get('extras_entrega'): extras.append("Entrega")
+    
+    livres = dados_orcamento.get('extras_livres', [])
+    for livre in livres:
+        extras.append(livre)
+        
     if extras:
         pdf.set_font("Arial", style='B', size=12)
         pdf.cell(200, 10, txt="Adicionais Inclusos:", ln=True, align="L")

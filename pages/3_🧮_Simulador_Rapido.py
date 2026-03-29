@@ -43,18 +43,43 @@ else:
     st.warning("⚠️ Cadastre Filamentos no Estoque! Usando valor padrão R$ 120/kg.")
     custo_kg_insumo = 120.0
 
+st.markdown("---")
+st.subheader("➕ Adicionais Livres (Serviços/Itens)")
+st.info("Adicione extras abaixo (Ex: 'Pintura', 'Design'). O lucro será aplicado também sobre eles.")
+
+if 'extras_simulador' not in st.session_state:
+    st.session_state['extras_simulador'] = pd.DataFrame([{"Descrição": "", "Valor (R$)": 0.0}])
+    
+edited_extras = st.data_editor(
+    st.session_state['extras_simulador'],
+    num_rows="dynamic",
+    use_container_width=True,
+    hide_index=True,
+    key="editor_extras_sim"
+)
+st.session_state['extras_simulador'] = edited_extras
+
+soma_extras = pd.to_numeric(edited_extras['Valor (R$)'], errors='coerce').sum()
+
+lista_extras_pdf = []
+for _, row in edited_extras.iterrows():
+    desc = str(row['Descrição']).strip()
+    val = pd.to_numeric(row['Valor (R$)'], errors='coerce')
+    if desc and not pd.isna(val) and val != 0:
+        lista_extras_pdf.append(f"{desc}: R$ {val:.2f}")
+
 # CALCULAR NA HORA
 st.markdown("---")
 custo_material = (peso / 1000) * custo_kg_insumo
 custo_maq = tempo_imp * eq_hora_deprec
 custo_hum = tempo_seu * float(config_obj.get('valor_hora_operador', 40))
 
-base = custo_material + custo_maq + custo_hum
+base = custo_material + custo_maq + custo_hum + soma_extras
 final = base * (1 + (margem / 100))
 
 c_a, c_b, c_c = st.columns(3)
-c_a.metric("Custo Fixo Liso", f"R$ {base:.2f}")
-c_b.metric("Seu Lucro", f"R$ {final - base:.2f}")
+c_a.metric("Custo Base Total", f"R$ {base:.2f}")
+c_b.metric("Lucro Calculado", f"R$ {final - base:.2f}")
 c_c.metric("Preço ao Cliente", f"R$ {final:.2f}")
 
 st.divider()
@@ -68,7 +93,8 @@ dados_fake = {
     "preco_final": final,
     "extras_embalagem": False,
     "extras_engenharia": False,
-    "extras_entrega": False
+    "extras_entrega": False,
+    "extras_livres": lista_extras_pdf
 }
 
 pdf_simulacao = generate_pdf_bytes(dados_fake)
