@@ -31,9 +31,21 @@ with col2:
     st.info(f"💡 Dica de Sucesso: Historicamente você fatura com ~{sugestao}% de margem!")
     margem = st.slider("Margem Aplicada (%)", 10.0, 300.0, float(sugestao))
 
+estoque = load_data("estoque")
+insumos = estoque[estoque['categoria'].isin(["Filamento (Rolo)", "Resina (Garrafa)"])] if not estoque.empty else pd.DataFrame()
+
+if not insumos.empty:
+    lista_insumos = [f"[{row['categoria']}] {row['nome_item']} ({row['cor']}) - R$ {row['custo_unitario']}" for _, row in insumos.iterrows()]
+    insumo_selecionado = st.selectbox("🧪 Material do Estoque:", lista_insumos)
+    idx_insumo = lista_insumos.index(insumo_selecionado)
+    custo_kg_insumo = float(insumos.iloc[idx_insumo]['custo_unitario'])
+else:
+    st.warning("⚠️ Cadastre Filamentos no Estoque! Usando valor padrão R$ 120/kg.")
+    custo_kg_insumo = 120.0
+
 # CALCULAR NA HORA
 st.markdown("---")
-custo_material = (peso / 1000) * float(config_obj.get('custo_padrao_material_kg', 120))
+custo_material = (peso / 1000) * custo_kg_insumo
 custo_maq = tempo_imp * eq_hora_deprec
 custo_hum = tempo_seu * float(config_obj.get('valor_hora_operador', 40))
 

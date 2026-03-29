@@ -14,6 +14,7 @@ pedidos = load_data("pedidos")
 clientes = load_data("clientes")
 orcamentos = load_data("orcamentos")
 equipamentos = load_data("equipamentos")
+estoque = load_data("estoque")
 config_obj = load_config()
 
 # ---- CRIAR NOVO PEDIDO ----
@@ -126,6 +127,15 @@ else:
                 tempo_h = col1.number_input("Tempo na Máquina (Horas)", min_value=0.0, step=0.5)
                 tempo_trab = col1.number_input("Seu Tempo gasto limpando (Hrs)", value=1.0, step=0.5)
                 
+                # Selecionar Material do Estoque
+                insumos = estoque[estoque['categoria'].isin(["Filamento (Rolo)", "Resina (Garrafa)"])] if not estoque.empty else pd.DataFrame()
+                if not insumos.empty:
+                    lista_insumos = [f"[{row['categoria']}] {row['nome_item']} ({row['cor']}) - R$ {row['custo_unitario']}" for _, row in insumos.iterrows()]
+                    mat_nome = col1.selectbox("Qual material?", lista_insumos)
+                else:
+                    st.warning("Cadastre Filamentos no Estoque!")
+                    mat_nome = None
+                
                 if not equipamentos.empty:
                     eq_nome = col2.selectbox("Qual máquina vai usar?", equipamentos['nome'].tolist())
                     eq_hora_deprec = float(equipamentos[equipamentos['nome'] == eq_nome]['custo_hora_depreciacao'].values[0])
@@ -143,8 +153,15 @@ else:
                 margem = st.slider("Margem (%)", 10.0, 300.0, margem_sugerida)
                 
                 if st.form_submit_button("Aprovar Orçamento e Salvar no Pedido"):
+                    # Identificar custo do material
+                    if mat_nome:
+                        idx_mat = lista_insumos.index(mat_nome)
+                        c_unit = float(insumos.iloc[idx_mat]['custo_unitario'])
+                    else:
+                        c_unit = 120.0 # Fallback
+                        
                     # Calc
-                    custo_material = (peso_g / 1000) * float(config_obj.get('custo_padrao_material_kg', 120))
+                    custo_material = (peso_g / 1000) * c_unit
                     custo_maq = tempo_h * eq_hora_deprec
                     custo_hum = tempo_trab * float(config_obj.get('valor_hora_operador', 40))
                     

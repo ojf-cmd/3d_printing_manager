@@ -14,7 +14,6 @@ with st.form("settings_form"):
     with col1:
         st.subheader("Custos Base")
         vh = st.number_input("Sua Hora Fixa de Trabalho (Fatiamento/Limpeza) (R$/h)", value=float(config_obj.get('valor_hora_operador', 40)), step=5.0)
-        cmat = st.number_input("Custo Padrão do Carretel (1KG) (R$)", value=float(config_obj.get('custo_padrao_material_kg', 120)), step=10.0)
         margem = st.number_input("Margem de Lucro Estática Padrão (%)", value=float(config_obj.get('margem_padrao', 80)), step=10.0)
         
     with col2:
@@ -26,7 +25,6 @@ with st.form("settings_form"):
     if st.form_submit_button("Salvar Regras da Impressão"):
         novo = {
             "valor_hora_operador": vh,
-            "custo_padrao_material_kg": cmat,
             "margem_padrao": margem,
             "custo_embalagem": c_emb,
             "custo_projeto_engenharia": c_proj,
